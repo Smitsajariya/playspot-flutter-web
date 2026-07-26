@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         bool backendVerified = false;
         try {
           final response = await http.post(
-            Uri.parse('https://playspot-zsof.onrender.com/api/auth/google'),
+            Uri.parse('https://playspot-backend.onrender.com/api/auth/google'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'credential': idToken}),
           ).timeout(const Duration(seconds: 5));
@@ -164,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Mobile: upload photo
           final request = http.MultipartRequest(
             'POST',
-            Uri.parse('https://playspot-zsof.onrender.com/api/upload-photo'),
+            Uri.parse('https://playspot-backend.onrender.com/api/upload-photo'),
           );
           request.files.add(await http.MultipartFile.fromPath('photo', image.path));
           
@@ -237,7 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else {
         // Send to backend in background (don't await, don't block navigation)
         http.post(
-          Uri.parse('https://playspot-zsof.onrender.com/api/profile'),
+          Uri.parse('https://playspot-backend.onrender.com/api/profile'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({...profile, 'userId': userId}),
         ).catchError((e) {

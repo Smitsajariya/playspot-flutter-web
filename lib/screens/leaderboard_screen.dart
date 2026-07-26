@@ -24,7 +24,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse('https://playspot-zsof.onrender.com/api/leaderboard'),
+        Uri.parse('https://playspot-backend.onrender.com/api/leaderboard'),
       ).timeout(
         const Duration(seconds: 5),
         onTimeout: () {

@@ -24,7 +24,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   Future<void> _loadProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('https://playspot-zsof.onrender.com/api/profile/${widget.userId}'),
+        Uri.parse('https://playspot-backend.onrender.com/api/profile/${widget.userId}'),
       );
 
       if (response.statusCode == 200) {

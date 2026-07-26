@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
@@ -7,7 +8,7 @@ class SocketService {
   SocketService._internal();
 
   io.Socket? _socket;
-  static const String _serverUrl = 'https://playspot-zsof.onrender.com';
+  static const String _serverUrl = 'https://playspot-backend.onrender.com';
   static bool _useMock = false;
   static String? lastConnectionError;
   final Map<String, List<Function(dynamic)>> _mockListeners = {};
@@ -161,26 +162,70 @@ class SocketService {
     socket.on('games:get', (data) => callback(data));
   }
 
-  void createGame(Map<String, dynamic> data, Function(dynamic) callback) {
+  void createGame(Map<String, dynamic> data, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback({'success': true, 'gameId': 'mock_game_${DateTime.now().millisecondsSinceEpoch}'});
       });
       return;
     }
+    
+    // Check connection and connect if needed
+    if (!socket.connected) {
+      connect();
+      // Wait a bit for connection to establish
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    
     socket.emit('host:create', data);
-    socket.once('host:create', (response) => callback(response));
+    
+    // Add timeout to the response listener
+    final timeoutFuture = Future.delayed(
+      const Duration(seconds: 15),
+      () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+    );
+    
+    final responseFuture = Future<dynamic>(() {
+      final completer = Completer<dynamic>();
+      socket.once('host:create', (response) => completer.complete(response));
+      return completer.future;
+    });
+    
+    final result = await Future.any([responseFuture, timeoutFuture]);
+    callback(result);
   }
 
-  void joinGame(String gameId, Map<String, dynamic> player, Function(dynamic) callback) {
+  void joinGame(String gameId, Map<String, dynamic> player, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback({'success': true, 'gameId': gameId});
       });
       return;
     }
+    
+    // Check connection and connect if needed
+    if (!socket.connected) {
+      connect();
+      // Wait a bit for connection to establish
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    
     socket.emit('player:join', {'gameId': gameId, ...player});
-    socket.once('player:join', (response) => callback(response));
+    
+    // Add timeout to the response listener
+    final timeoutFuture = Future.delayed(
+      const Duration(seconds: 15),
+      () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+    );
+    
+    final responseFuture = Future<dynamic>(() {
+      final completer = Completer<dynamic>();
+      socket.once('player:join', (response) => completer.complete(response));
+      return completer.future;
+    });
+    
+    final result = await Future.any([responseFuture, timeoutFuture]);
+    callback(result);
   }
 
   void leaveGame(String gameId, String userId) {

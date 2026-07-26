@@ -297,7 +297,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           // Mobile: upload to backend
           final request = http.MultipartRequest(
             'POST',
-            Uri.parse('https://playspot-zsof.onrender.com/api/upload-photo'),
+            Uri.parse('https://playspot-backend.onrender.com/api/upload-photo'),
           );
           request.files.add(await http.MultipartFile.fromPath('photo', image.path));
           
