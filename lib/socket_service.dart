@@ -8,7 +8,7 @@ class SocketService {
   SocketService._internal();
 
   io.Socket? _socket;
-  static const String _serverUrl = 'https://playspot-backend.onrender.com';
+  static const String _serverUrl = 'http://localhost:3000';
   static bool _useMock = false;
   static String? lastConnectionError;
   final Map<String, List<Function(dynamic)>> _mockListeners = {};

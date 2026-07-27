@@ -14,6 +14,7 @@ import '../services/presence_service.dart';
 import '../services/weather_service.dart';
 import '../services/waitlist_service.dart';
 import '../services/geocoding_service.dart';
+import '../widgets/game_pin_marker.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -70,6 +71,16 @@ class _MapScreenState extends State<MapScreen> {
           _games.add(newGame);
         });
       }
+    });
+
+    // Poll every 8 seconds for real-time updates (matching HTML version)
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 8));
+      if (mounted) {
+        _loadGames();
+        return true;
+      }
+      return false;
     });
 
     // Timeout after 5 seconds - just stop loading, show empty state
@@ -499,64 +510,19 @@ class _MapScreenState extends State<MapScreen> {
   Widget _singleGameMarker(dynamic game) {
     final sport = game['sport'] ?? 'unknown';
     final sportEmoji = _getSportEmoji(sport);
-    final isMyGame = game['isMyGame'] == true;
+    final isMyGame = game['isMyGame'] == true || game['id']?.toString() == _myGameId;
     final hostPhoto = game['photoUrl'] as String?;
+    final players = game['players'] as List<dynamic>? ?? [];
+    final host = players.isNotEmpty ? players[0] as Map<String, dynamic>? : null;
+    final hostPhotoUrl = host?['photoUrl'] as String?;
 
     return GestureDetector(
       onTap: () => _showGameBottomSheet(game),
-      child: Stack(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isMyGame ? const Color(0xFFFF6B6B) : const Color(0xFFF5A623),
-              border: isMyGame ? Border.all(color: Colors.white, width: 3) : null,
-              boxShadow: [
-                BoxShadow(
-                  color: (isMyGame ? Colors.red : Colors.orange).withOpacity(0.6),
-                  blurRadius: isMyGame ? 16 : 12,
-                  spreadRadius: isMyGame ? 3 : 2,
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(sportEmoji, style: const TextStyle(fontSize: 24)),
-            ),
-          ),
-          if (isMyGame)
-            Positioned(
-              top: -4,
-              right: -4,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
-                ),
-                child: const Icon(Icons.star, color: Color(0xFFFF6B6B), size: 14),
-              ),
-            ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.black, width: 1.5),
-              ),
-              child: CircleAvatar(
-                backgroundImage: hostPhoto != null && hostPhoto.isNotEmpty
-                    ? NetworkImage(hostPhoto)
-                    : const NetworkImage('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'),
-              ),
-            ),
-          ),
-        ],
+      child: GamePinMarker(
+        photoUrl: hostPhotoUrl ?? hostPhoto,
+        sportEmoji: sportEmoji,
+        isMine: isMyGame,
+        size: 46,
       ),
     );
   }

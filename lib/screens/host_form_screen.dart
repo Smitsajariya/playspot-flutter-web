@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'dart:convert';
 import '../socket_service.dart';
 import '../screens/ingame_screen.dart';
@@ -10,6 +11,7 @@ import '../screens/location_picker_screen.dart';
 import '../utils/sport_icons.dart';
 import '../theme/playspot_theme.dart';
 import '../services/notification_service.dart';
+import '../services/geocoding_service.dart';
 
 class HostFormScreen extends StatefulWidget {
   final Map<String, dynamic>? selectedActivity;
@@ -25,6 +27,7 @@ class _HostFormScreenState extends State<HostFormScreen> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _ticketPriceController = TextEditingController();
+  final MapController _mapController = MapController();
   
   int _maxPlayers = 10;
   DateTime? _selectedDateTime;
@@ -72,6 +75,44 @@ class _HostFormScreenState extends State<HostFormScreen> {
     }
   }
 
+  Future<void> _useCurrentLocation() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      
+      final address = await GeocodingService.reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
+      
+      setState(() {
+        _lat = position.latitude;
+        _lng = position.longitude;
+        _selectedAddress = address;
+        _locationController.text = address;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Location set: $address'),
+          backgroundColor: PSColors.gold,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to get location: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _selectDateTime() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -107,15 +148,9 @@ class _HostFormScreenState extends State<HostFormScreen> {
       );
       return;
     }
-    if (_locationController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a location')),
-      );
-      return;
-    }
     if (_lat == null || _lng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location not available')),
+        const SnackBar(content: Text('Please select a location on the map or use current location')),
       );
       return;
     }
@@ -209,6 +244,16 @@ class _HostFormScreenState extends State<HostFormScreen> {
           }
           
           if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Game created! 📍 You\'re live on the map — go anywhere, your game stays active'),
+                backgroundColor: PSColors.gold,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            
+            await Future.delayed(const Duration(milliseconds: 500));
+            
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (context) => IngameScreen(gameId: gameId),
@@ -539,81 +584,173 @@ class _HostFormScreenState extends State<HostFormScreen> {
   }
 
   Widget _buildLocationPicker() {
-    return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LocationPickerScreen(
-              initialLocation: _lat != null && _lng != null
-                  ? LatLng(_lat!, _lng!)
-                  : null,
-              initialAddress: _selectedAddress,
-            ),
-          ),
-        );
-        
-        if (result != null) {
-          setState(() {
-            _lat = result['location'].latitude;
-            _lng = result['location'].longitude;
-            _selectedAddress = result['address'];
-            _locationController.text = _selectedAddress ?? '';
-          });
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: PSGradients.sportCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: PSColors.gold.withOpacity(0.3),
-            width: 1,
-          ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: PSGradients.sportCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: PSColors.gold.withOpacity(0.3),
+          width: 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.location_on, color: PSColors.gold, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Location',
-                  style: TextStyle(
-                    color: Color(0xFFFFF8F0),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Icon(Icons.arrow_forward_ios, color: PSColors.inkDim, size: 16),
-              ],
-            ),
-            if (_selectedAddress != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _selectedAddress!,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_on, color: PSColors.gold, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Location',
                 style: TextStyle(
-                  color: PSColors.inkDim,
-                  fontSize: 12,
+                  color: Color(0xFFFFF8F0),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ] else ...[
-              const SizedBox(height: 8),
-              Text(
-                'Tap to select location',
-                style: TextStyle(
-                  color: PSColors.inkDim,
-                  fontSize: 12,
-                ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LocationPickerScreen(
+                        initialLocation: _lat != null && _lng != null
+                            ? LatLng(_lat!, _lng!)
+                            : null,
+                        initialAddress: _selectedAddress,
+                      ),
+                    ),
+                  );
+                  
+                  if (result != null) {
+                    setState(() {
+                      _lat = result['location'].latitude;
+                      _lng = result['location'].longitude;
+                      _selectedAddress = result['address'];
+                      _locationController.text = _selectedAddress ?? '';
+                    });
+                    _mapController.move(LatLng(_lat!, _lng!), 15);
+                  }
+                },
+                child: Icon(Icons.arrow_forward_ios, color: PSColors.inkDim, size: 16),
               ),
             ],
+          ),
+          if (_selectedAddress != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _selectedAddress!,
+              style: TextStyle(
+                color: PSColors.inkDim,
+                fontSize: 12,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tap on map or use current location',
+              style: TextStyle(
+                color: PSColors.inkDim,
+                fontSize: 12,
+              ),
+            ),
           ],
-        ),
+          const SizedBox(height: 12),
+          // Embedded map
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: PSColors.gold.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: _lat != null && _lng != null
+                      ? LatLng(_lat!, _lng!)
+                      : LatLng(20.5937, 78.9629),
+                  initialZoom: _lat != null ? 15 : 5,
+                  onTap: (tapPosition, point) async {
+                    setState(() {
+                      _lat = point.latitude;
+                      _lng = point.longitude;
+                    });
+                    
+                    final address = await GeocodingService.reverseGeocode(
+                      point.latitude,
+                      point.longitude,
+                    );
+                    
+                    setState(() {
+                      _selectedAddress = address;
+                      _locationController.text = address;
+                    });
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    subdomains: ['a', 'b', 'c'],
+                  ),
+                  if (_lat != null && _lng != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(_lat!, _lng!),
+                          width: 40,
+                          height: 40,
+                          child: Icon(
+                            Icons.location_on,
+                            size: 40,
+                            color: PSColors.gold,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _useCurrentLocation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: PSColors.gold.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: PSColors.gold.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.my_location, color: PSColors.gold, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Use my current location',
+                    style: TextStyle(
+                      color: PSColors.gold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -39,7 +39,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
   String? _selectedAddress;
   bool _isLoading = false;
   String? _errorMessage;
-  List<Location> _searchResults = [];
+  List<LatLng> _searchResults = [];
   String? _mapSearchError;
   
   @override
@@ -129,7 +129,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
       
       if (locations.isNotEmpty) {
         setState(() {
-          _searchResults = locations.map((latLng) => Location(latLng.latitude, latLng.longitude)).toList();
+          _searchResults = locations;
           _selectedLocation = locations.first;
           _errorMessage = null;
         });
@@ -454,7 +454,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
             const SizedBox(height: 12),
             ..._searchResults.asMap().entries.map((entry) {
               int index = entry.key;
-              Location location = entry.value;
+              LatLng location = entry.value;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
