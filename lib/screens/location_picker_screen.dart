@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../theme/playspot_theme.dart';
+import '../services/geocoding_service.dart';
 
 class LocationPickerScreen extends StatefulWidget {
   final LatLng? initialLocation;
@@ -21,8 +22,9 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   final MapController _mapController = MapController();
+  LatLng? _centerLocation; // Tracks the center of the map
   
   // Manual input controllers
   final TextEditingController _streetController = TextEditingController();
@@ -46,6 +48,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     _tabController = TabController(length: 2, vsync: this);
     _selectedLocation = widget.initialLocation;
     _selectedAddress = widget.initialAddress;
+    _centerLocation = widget.initialLocation;
     
     if (_selectedLocation != null) {
       _mapController.move(_selectedLocation!, 15);
@@ -56,7 +59,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     _streetController.dispose();
     _cityController.dispose();
     _pincodeController.dispose();
@@ -75,6 +78,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          // Fallback to default location if permission denied
+          setState(() {
+            _selectedLocation = const LatLng(20.5937, 78.9629);
+          });
+          _mapController.move(_selectedLocation!, 5);
           return;
         }
       }
@@ -91,6 +99,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
       await _reverseGeocode(_selectedLocation!);
     } catch (e) {
       print('Error getting location: $e');
+      // Fallback to default location on error
+      setState(() {
+        _selectedLocation = const LatLng(20.5937, 78.9629);
+      });
+      _mapController.move(_selectedLocation!, 5);
     }
   }
 
@@ -111,13 +124,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     try {
       String address = _buildAddressString();
       print('Searching for address: $address');
-      List<Location> locations = await locationFromAddress(address);
+      List<LatLng> locations = await GeocodingService.forwardGeocode(address);
       print('Found ${locations.length} locations');
       
       if (locations.isNotEmpty) {
         setState(() {
-          _searchResults = locations;
-          _selectedLocation = LatLng(locations.first.latitude, locations.first.longitude);
+          _searchResults = locations.map((latLng) => Location(latLng.latitude, latLng.longitude)).toList();
+          _selectedLocation = locations.first;
           _errorMessage = null;
         });
         
@@ -152,10 +165,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     });
 
     try {
-      List<Location> locations = await locationFromAddress(searchText);
+      List<LatLng> locations = await GeocodingService.forwardGeocode(searchText);
       
       if (locations.isNotEmpty) {
-        final newLocation = LatLng(locations.first.latitude, locations.first.longitude);
+        final newLocation = locations.first;
         setState(() {
           _selectedLocation = newLocation;
           _mapSearchError = null;
@@ -195,38 +208,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
 
   Future<void> _reverseGeocode(LatLng location) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      String address = await GeocodingService.reverseGeocode(
         location.latitude,
         location.longitude,
       );
-      
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        String address = _formatAddress(place);
-        setState(() {
-          _selectedAddress = address;
-        });
-      }
+      setState(() {
+        _selectedAddress = address;
+      });
     } catch (e) {
       print('Error reverse geocoding: $e');
     }
-  }
-
-  String _formatAddress(Placemark place) {
-    List<String> parts = [];
-    if (place.street?.isNotEmpty == true) parts.add(place.street!);
-    if (place.subLocality?.isNotEmpty == true) parts.add(place.subLocality!);
-    if (place.locality?.isNotEmpty == true) parts.add(place.locality!);
-    if (place.administrativeArea?.isNotEmpty == true) parts.add(place.administrativeArea!);
-    if (place.postalCode?.isNotEmpty == true) parts.add(place.postalCode!);
-    if (place.country?.isNotEmpty == true) parts.add(place.country!);
-    
-    // Fallback if all fields are empty
-    if (parts.isEmpty) {
-      return 'Selected location';
-    }
-    
-    return parts.join(', ');
   }
 
   void _confirmLocation() {
@@ -271,13 +262,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildManualInputTab(),
-          _buildMapPinTab(),
-        ],
-      ),
+      body: _tabController != null
+          ? TabBarView(
+              controller: _tabController,
+              children: [
+                _buildManualInputTab(),
+                _buildMapPinTab(),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator()),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -683,11 +676,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
                   options: MapOptions(
                     initialCenter: _selectedLocation ?? const LatLng(20.5937, 78.9629),
                     initialZoom: _selectedLocation != null ? 15 : 5,
-                    onTap: (tapPosition, point) {
-                      setState(() {
-                        _selectedLocation = point;
-                      });
-                      _reverseGeocode(point);
+                    onMapEvent: (event) {
+                      if (event is MapEventMoveEnd) {
+                        // Update center location when map stops moving
+                        setState(() {
+                          _centerLocation = event.camera.center;
+                          _selectedLocation = event.camera.center;
+                        });
+                        _reverseGeocode(event.camera.center);
+                      }
                     },
                   ),
                   children: [
@@ -697,33 +694,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
                       userAgentPackageName: 'com.example.playspot_flutter',
                       maxZoom: 18,
                     ),
-                    if (_selectedLocation != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _selectedLocation!,
-                            width: 50,
-                            height: 50,
-                            child: const Icon(
-                              Icons.location_on,
-                              size: 50,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
+                    // Fixed center pin
+                    const Center(
+                      child: Icon(
+                        Icons.location_on,
+                        size: 50,
+                        color: Colors.red,
                       ),
+                    ),
                   ],
                 ),
               ),
-              // Center crosshair
-              if (_selectedLocation == null)
-                const Center(
-                  child: Icon(
-                    Icons.location_searching,
-                    size: 40,
-                    color: PSColors.gold,
-                  ),
-                ),
               // Current location button
               Positioned(
                 right: 16,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +13,7 @@ import '../theme/playspot_theme.dart';
 import '../services/presence_service.dart';
 import '../services/weather_service.dart';
 import '../services/waitlist_service.dart';
+import '../services/geocoding_service.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -26,6 +28,11 @@ class _MapScreenState extends State<MapScreen> {
   
   List<dynamic> _games = [];
   LatLng? _currentLocation;
+  LatLng? _savedLocation; // User's saved location
+  String? _savedLocationAddress;
+  String? _savedGameType; // User's saved game type
+  LatLng? _selectedLocationForSave; // Currently selected location to save
+  String? _selectedLocationForSaveAddress;
   String? _myGameId;
   bool _isLoading = false;
   String? _userPhotoUrl;
@@ -48,6 +55,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _initialize() async {
     setState(() => _isLoading = true);
     await _loadUserProfile();
+    await _loadSavedLocation();
     await _getCurrentLocation();
     _loadGames();
     _socketService.connect();
@@ -128,6 +136,97 @@ class _MapScreenState extends State<MapScreen> {
       }
     } catch (e) {
       print('Error loading user profile: $e');
+    }
+  }
+
+  Future<void> _loadSavedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedLat = prefs.getDouble('ps_saved_location_lat');
+      final savedLng = prefs.getDouble('ps_saved_location_lng');
+      final savedAddress = prefs.getString('ps_saved_location_address');
+      final savedGameType = prefs.getString('ps_saved_game_type');
+      
+      if (savedLat != null && savedLng != null) {
+        setState(() {
+          _savedLocation = LatLng(savedLat, savedLng);
+          _savedLocationAddress = savedAddress;
+          _savedGameType = savedGameType;
+        });
+      }
+    } catch (e) {
+      print('Error loading saved location: $e');
+    }
+  }
+
+  Future<void> _saveCurrentLocation() async {
+    if (_selectedLocationForSave == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tap on the map to select a location first'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Show game type selection dialog
+    final gameTypes = ['All', 'Sports', 'Nightlife', 'Fitness', 'Cultural', 'Food', 'Custom'];
+    String? selectedGameType = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Game Type'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: gameTypes.map((type) => ListTile(
+            title: Text(type),
+            onTap: () => Navigator.pop(context, type),
+          )).toList(),
+        ),
+      ),
+    );
+    
+    if (selectedGameType == null) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final locationToSave = _selectedLocationForSave!;
+      final addressToSave = _selectedLocationForSaveAddress ?? 'Selected location';
+      
+      await prefs.setDouble('ps_saved_location_lat', locationToSave.latitude);
+      await prefs.setDouble('ps_saved_location_lng', locationToSave.longitude);
+      await prefs.setString('ps_saved_location_address', addressToSave);
+      await prefs.setString('ps_saved_game_type', selectedGameType);
+      
+      setState(() {
+        _savedLocation = locationToSave;
+        _savedLocationAddress = addressToSave;
+        _savedGameType = selectedGameType;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location saved for $selectedGameType: $addressToSave'),
+            backgroundColor: PSColors.gold,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error saving location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save location'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -795,7 +894,36 @@ class _MapScreenState extends State<MapScreen> {
             options: MapOptions(
               initialCenter: _currentLocation ?? const LatLng(20.5937, 78.9629),
               initialZoom: _currentLocation != null ? 14 : 5,
-              onTap: (tapPosition, point) {},
+              onTap: (tapPosition, point) async {
+                // Select this location for saving
+                setState(() {
+                  _selectedLocationForSave = point;
+                });
+                // Reverse geocode to get address
+                List<Placemark> placemarks = await placemarkFromCoordinates(
+                  point.latitude,
+                  point.longitude,
+                );
+                
+                String address = 'Selected location';
+                if (placemarks.isNotEmpty) {
+                  Placemark place = placemarks.first;
+                  List<String> parts = [];
+                  if (place.street?.isNotEmpty == true) parts.add(place.street!);
+                  if (place.subLocality?.isNotEmpty == true) parts.add(place.subLocality!);
+                  if (place.locality?.isNotEmpty == true) parts.add(place.locality!);
+                  if (place.administrativeArea?.isNotEmpty == true) parts.add(place.administrativeArea!);
+                  if (place.postalCode?.isNotEmpty == true) parts.add(place.postalCode!);
+                  if (place.country?.isNotEmpty == true) parts.add(place.country!);
+                  if (parts.isNotEmpty) {
+                    address = parts.join(', ');
+                  }
+                }
+                
+                setState(() {
+                  _selectedLocationForSaveAddress = address;
+                });
+              },
               onPositionChanged: (position, hasGesture) {
                 final z = position.zoom;
                 if (z != null && (z - _zoom).abs() > 0.05) {
@@ -832,54 +960,84 @@ class _MapScreenState extends State<MapScreen> {
                     child: _clusterMarker(cluster),
                   );
                 }).toList(),
-                ),
-                // Current location marker with avatar
-                if (_currentLocation != null && _showOnMap)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _currentLocation!,
-                        width: 60,
-                        height: 60,
-                        child: GestureDetector(
-                          onTap: () => _showProfileCard(context),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFF5A623), width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFF5A623).withOpacity(0.5),
-                                  blurRadius: 10,
-                                ),
-                              ],
-                            ),
-                            child: _userPhotoUrl != null && _userPhotoUrl!.isNotEmpty
-                                ? CircleAvatar(
-                                    backgroundImage: NetworkImage(_userPhotoUrl!),
-                                  )
-                                : CircleAvatar(
-                                    backgroundColor: const Color(0xFFF5A623),
-                                    child: Text(
-                                      (_userName != null && _userName!.trim().isNotEmpty)
-                                          ? _userName!.trim()[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                      ),
+              ),
+              // Current location marker with avatar
+              if (_currentLocation != null && _showOnMap)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentLocation!,
+                      width: 60,
+                      height: 60,
+                      child: GestureDetector(
+                        onTap: () => _showProfileCard(context),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFF5A623), width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFF5A623).withOpacity(0.5),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: _userPhotoUrl != null && _userPhotoUrl!.isNotEmpty
+                              ? CircleAvatar(
+                                  backgroundImage: NetworkImage(_userPhotoUrl!),
+                                )
+                              : CircleAvatar(
+                                  backgroundColor: const Color(0xFFF5A623),
+                                  child: Text(
+                                    (_userName != null && _userName!.trim().isNotEmpty)
+                                        ? _userName!.trim()[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
                                     ),
                                   ),
-                          ),
+                                ),
                         ),
                       ),
-                    ],
-                  )
-                else
-                  const SizedBox.shrink(),
-              ],
-            ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox.shrink(),
+              // Selected location for saving marker
+              if (_selectedLocationForSave != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _selectedLocationForSave!,
+                      width: 50,
+                      height: 50,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.green,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.6),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
           
           // Loading indicator
           if (_isLoading)
@@ -993,6 +1151,23 @@ class _MapScreenState extends State<MapScreen> {
               left: 8,
               bottom: 8,
               child: _buildAttribution(),
+            ),
+
+          // Save location button - bottom right
+          if (!_showListView)
+            Positioned(
+              right: 12,
+              bottom: 80,
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: _savedLocation != null ? PSColors.gold : const Color(0xFF0E0700),
+                foregroundColor: _savedLocation != null ? const Color(0xFF140A00) : PSColors.gold,
+                onPressed: _saveCurrentLocation,
+                child: Icon(
+                  _savedLocation != null ? Icons.bookmark : Icons.bookmark_border,
+                  size: 20,
+                ),
+              ),
             ),
 
           // Connection error debug text — temporary diagnostic

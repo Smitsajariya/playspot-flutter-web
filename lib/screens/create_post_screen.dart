@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:video_player/video_player.dart';
 import '../theme/playspot_theme.dart';
+import '../services/geocoding_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final Function(Map<String, dynamic>)? onPostCreated;
@@ -620,24 +621,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         desiredAccuracy: LocationAccuracy.medium,
       );
 
-      String label = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
-      try {
-        final placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          final parts = [p.locality, p.administrativeArea, p.country]
-              .where((s) => s != null && s.trim().isNotEmpty)
-              .toList();
-          if (parts.isNotEmpty) label = parts.join(', ');
-        }
-      } catch (e) {
-        // Reverse geocoding not supported on this platform (e.g. some
-        // web setups) — fall back to raw coordinates set above.
-        print('Reverse geocoding failed: $e');
-      }
+      String label = await GeocodingService.reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
 
       setState(() {
         _locationController.text = label;

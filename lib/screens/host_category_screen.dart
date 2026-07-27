@@ -3,6 +3,7 @@ import '../theme/playspot_theme.dart';
 import '../utils/sport_icons.dart';
 import '../controllers/host_event_flow_controller.dart';
 import 'location_picker_screen.dart';
+import 'host_form_screen.dart';
 
 class HostCategory {
   final String id;
@@ -45,13 +46,11 @@ class MainCategory {
 class HostCategoryScreen extends StatefulWidget {
   final Function(String categoryId) onCategorySelect;
   final VoidCallback? onBack;
-  final HostEventFlowController? flowController;
 
   const HostCategoryScreen({
     super.key,
     required this.onCategorySelect,
     this.onBack,
-    this.flowController,
   });
 
   @override
@@ -61,13 +60,7 @@ class HostCategoryScreen extends StatefulWidget {
 class _HostCategoryScreenState extends State<HostCategoryScreen> {
   MainCategory? selectedMainCategory;
   String searchQuery = '';
-  late HostEventFlowController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = widget.flowController ?? HostEventFlowController();
-  }
+  final HostEventFlowController _controller = HostEventFlowController();
 
   static const List<MainCategory> mainCategories = [
     MainCategory(
@@ -756,7 +749,20 @@ class _HostCategoryScreenState extends State<HostCategoryScreen> {
     return GestureDetector(
       onTap: () {
         _controller.setSubCategory(category.id);
-        widget.onCategorySelect(category.id);
+        // Navigate directly to HostFormScreen like custom activities
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HostFormScreen(
+              selectedActivity: {
+                'id': category.id,
+                'name': category.name,
+                'icon': category.icon,
+                'categoryId': selectedMainCategory!.id,
+              },
+            ),
+          ),
+        );
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),

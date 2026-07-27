@@ -50,6 +50,10 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
   bool _isLoading = false;
   String _searchQuery = '';
   Position? _currentPosition;
+  String? _savedLocationAddress; // User's saved location address
+  String? _savedGameType; // User's saved game type
+  double? _savedLocationLat;
+  double? _savedLocationLng;
 
   final List<Map<String, String>> _categories = [
     {'id': 'all', 'label': 'All', 'emoji': '🎯'},
@@ -121,6 +125,26 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
   }
 
   String _calculateDistance(double gameLat, double gameLng) {
+    // Use saved location if available, otherwise use current GPS location
+    if (_savedLocationLat != null && _savedLocationLng != null) {
+      try {
+        final distanceInMeters = Geolocator.distanceBetween(
+          _savedLocationLat!,
+          _savedLocationLng!,
+          gameLat,
+          gameLng,
+        );
+        final distanceInKm = distanceInMeters / 1000;
+        if (distanceInKm < 1) {
+          return '${distanceInMeters.toStringAsFixed(0)} m away';
+        } else {
+          return '${distanceInKm.toStringAsFixed(1)} km away';
+        }
+      } catch (e) {
+        print('Error calculating distance from saved location: $e');
+      }
+    }
+    
     if (_currentPosition == null) {
       return 'Location unknown';
     }

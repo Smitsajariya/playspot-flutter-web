@@ -15,7 +15,7 @@ class PlayerProfileScreen extends StatefulWidget {
 
 class _PlayerProfileScreenState extends State<PlayerProfileScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   bool _isFollowing = false;
   bool _isPrivate = false;
   bool _allowMessages = false;
@@ -30,7 +30,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -137,14 +137,16 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen>
             ),
           ),
           SliverFillRemaining(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildPostsGrid(),
-                _buildVideosGrid(),
-                _buildTaggedGrid(),
-              ],
-            ),
+            child: _tabController != null
+                ? TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildPostsGrid(),
+                      _buildVideosGrid(),
+                      _buildTaggedGrid(),
+                    ],
+                  )
+                : const Center(child: CircularProgressIndicator()),
           ),
         ],
       ),
