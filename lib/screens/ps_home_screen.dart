@@ -904,7 +904,7 @@ class _GameCard extends StatelessWidget {
     // Use calculated distance if available, otherwise fallback to location
     final distanceLabel = game['calculatedDistance'] as String? ?? 
                          (game['location'] ?? 'Unknown location');
-    final players = game['players'] as int? ?? game['playerCount'] ?? 0;
+    final players = (game['players'] as List?)?.length ?? game['playerCount'] ?? 0;
     final maxPlayers = game['maxPlayers'] ?? 10;
     final isLive = game['isLive'] == true;
     
