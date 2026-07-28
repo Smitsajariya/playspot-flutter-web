@@ -113,7 +113,7 @@ class SocketService {
   }
 
   // Socket methods matching the exact event names from the backend
-  void getGames(Function(dynamic) callback) {
+  Future<void> getGames(Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       // Return mock games data with proper structure
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -158,14 +158,22 @@ class SocketService {
       });
       return;
     }
-    socket.emit('games:get');
-    socket.on('games:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('games:get').timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
   void createGame(Map<String, dynamic> data, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'gameId': 'mock_game_${DateTime.now().millisecondsSinceEpoch}'});
+        callback({'ok': true, 'game': {'id': 'mock_game_${DateTime.now().millisecondsSinceEpoch}'}});
       });
       return;
     }
@@ -177,28 +185,21 @@ class SocketService {
       await Future.delayed(const Duration(seconds: 2));
     }
     
-    socket.emit('host:create', data);
-    
-    // Add timeout to the response listener
-    final timeoutFuture = Future.delayed(
-      const Duration(seconds: 15),
-      () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-    );
-    
-    final responseFuture = Future<dynamic>(() {
-      final completer = Completer<dynamic>();
-      socket.once('host:create', (response) => completer.complete(response));
-      return completer.future;
-    });
-    
-    final result = await Future.any([responseFuture, timeoutFuture]);
-    callback(result);
+    try {
+      final result = await socket.emitWithAck('host:create', data).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
   void joinGame(String gameId, Map<String, dynamic> player, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'gameId': gameId});
+        callback({'ok': true, 'gameId': gameId});
       });
       return;
     }
@@ -210,22 +211,15 @@ class SocketService {
       await Future.delayed(const Duration(seconds: 2));
     }
     
-    socket.emit('player:join', {'gameId': gameId, ...player});
-    
-    // Add timeout to the response listener
-    final timeoutFuture = Future.delayed(
-      const Duration(seconds: 15),
-      () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-    );
-    
-    final responseFuture = Future<dynamic>(() {
-      final completer = Completer<dynamic>();
-      socket.once('player:join', (response) => completer.complete(response));
-      return completer.future;
-    });
-    
-    final result = await Future.any([responseFuture, timeoutFuture]);
-    callback(result);
+    try {
+      final result = await socket.emitWithAck('player:join', {'gameId': gameId, ...player}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
   void leaveGame(String gameId, String userId) {
@@ -242,7 +236,7 @@ class SocketService {
     socket.emit('host:kick', {'gameId': gameId, 'userId': userId, 'playerId': targetId});
   }
 
-  void getEvents(Function(dynamic) callback) {
+  Future<void> getEvents(Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -252,41 +246,73 @@ class SocketService {
       });
       return;
     }
-    socket.emit('events:get');
-    socket.on('events:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('events:get').timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
-  void createEvent(Map<String, dynamic> data, Function(dynamic) callback) {
+  void createEvent(Map<String, dynamic> data, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'eventId': 'mock_event_${DateTime.now().millisecondsSinceEpoch}'});
+        callback({'ok': true, 'event': {'id': 'mock_event_${DateTime.now().millisecondsSinceEpoch}'}});
       });
       return;
     }
-    socket.emit('event:create', data);
-    socket.once('event:create', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('event:create', data).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void joinEvent(String eventId, String userId, Function(dynamic) callback) {
+  void joinEvent(String eventId, String userId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'eventId': eventId});
+        callback({'ok': true, 'eventId': eventId});
       });
       return;
     }
-    socket.emit('event:join', {'eventId': eventId, 'userId': userId});
-    socket.once('event:join', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('event:join', {'eventId': eventId, 'userId': userId}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void verifyCheckin(String gameId, String hostId, String playerId, Function(dynamic) callback) {
+  void verifyCheckin(String gameId, String hostId, String playerId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'verified': true});
+        callback({'ok': true, 'verified': true});
       });
       return;
     }
-    socket.emit('checkin:verify', {'gameId': gameId, 'hostUserId': hostId, 'playerUserId': playerId});
-    socket.once('checkin:verify', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('checkin:verify', {'gameId': gameId, 'hostUserId': hostId, 'playerUserId': playerId}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
   void sendChat(String gameId, Map<String, dynamic> message) {
@@ -332,7 +358,7 @@ class SocketService {
   }
 
   // Chat methods
-  void getConversations(Function(dynamic) callback) {
+  Future<void> getConversations(Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -342,11 +368,19 @@ class SocketService {
       });
       return;
     }
-    socket.emit('conversations:get');
-    socket.on('conversations:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('conversations:get').timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
-  void getGroupMessages(String groupId, Function(dynamic) callback) {
+  Future<void> getGroupMessages(String groupId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -356,11 +390,19 @@ class SocketService {
       });
       return;
     }
-    socket.emit('group:messages:get', {'groupId': groupId});
-    socket.on('group:messages:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('group:messages:get', {'groupId': groupId}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
-  void getPersonalMessages(String userId, Function(dynamic) callback) {
+  Future<void> getPersonalMessages(String userId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -370,30 +412,54 @@ class SocketService {
       });
       return;
     }
-    socket.emit('personal:messages:get', {'userId': userId});
-    socket.on('personal:messages:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('personal:messages:get', {'userId': userId}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
-  void sendGroupMessage(String groupId, String content, String type, Function(dynamic) callback) {
+  void sendGroupMessage(String groupId, String content, String type, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'messageId': 'mock_msg_${DateTime.now().millisecondsSinceEpoch}'});
+        callback({'ok': true, 'messageId': 'mock_msg_${DateTime.now().millisecondsSinceEpoch}'});
       });
       return;
     }
-    socket.emit('group:message:send', {'groupId': groupId, 'content': content, 'type': type});
-    socket.once('group:message:send', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('group:message:send', {'groupId': groupId, 'content': content, 'type': type}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void sendPersonalMessage(String userId, String content, String type, Function(dynamic) callback) {
+  void sendPersonalMessage(String userId, String content, String type, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'messageId': 'mock_msg_${DateTime.now().millisecondsSinceEpoch}'});
+        callback({'ok': true, 'messageId': 'mock_msg_${DateTime.now().millisecondsSinceEpoch}'});
       });
       return;
     }
-    socket.emit('personal:message:send', {'userId': userId, 'content': content, 'type': type});
-    socket.once('personal:message:send', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('personal:message:send', {'userId': userId, 'content': content, 'type': type}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
   void createGroup({
@@ -406,27 +472,35 @@ class SocketService {
     String? eventId,
     int? maxParticipants,
     required Function(dynamic) callback,
-  }) {
+  }) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'groupId': 'mock_group_${DateTime.now().millisecondsSinceEpoch}'});
+        callback({'ok': true, 'group': {'id': 'mock_group_${DateTime.now().millisecondsSinceEpoch}'}});
       });
       return;
     }
-    socket.emit('group:create', {
-      'name': name,
-      'description': description,
-      'announcement': announcement,
-      'isPublic': isPublic,
-      'isSearchable': isSearchable,
-      'isEventGroup': isEventGroup,
-      'eventId': eventId,
-      'maxParticipants': maxParticipants,
-    });
-    socket.once('group:create', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('group:create', {
+        'name': name,
+        'description': description,
+        'announcement': announcement,
+        'isPublic': isPublic,
+        'isSearchable': isSearchable,
+        'isEventGroup': isEventGroup,
+        'eventId': eventId,
+        'maxParticipants': maxParticipants,
+      }).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void searchPublicGroups(String query, Function(dynamic) callback) {
+  Future<void> searchPublicGroups(String query, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -436,22 +510,38 @@ class SocketService {
       });
       return;
     }
-    socket.emit('groups:search', {'query': query});
-    socket.on('groups:search', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('groups:search', {'query': query}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => [],
+      );
+      callback(result);
+    } catch (e) {
+      callback([]);
+    }
   }
 
-  void joinPublicGroup(String groupId, Function(dynamic) callback) {
+  void joinPublicGroup(String groupId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'groupId': groupId});
+        callback({'ok': true, 'groupId': groupId});
       });
       return;
     }
-    socket.emit('group:join', {'groupId': groupId});
-    socket.once('group:join', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('group:join', {'groupId': groupId}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void getGroupInfo(String groupId, Function(dynamic) callback) {
+  Future<void> getGroupInfo(String groupId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback({
@@ -463,30 +553,54 @@ class SocketService {
       });
       return;
     }
-    socket.emit('group:info:get', {'groupId': groupId});
-    socket.on('group:info:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('group:info:get', {'groupId': groupId}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => {},
+      );
+      callback(result);
+    } catch (e) {
+      callback({});
+    }
   }
 
-  void leaveGroup(String groupId, Function(dynamic) callback) {
+  void leaveGroup(String groupId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
-        callback({'success': true, 'groupId': groupId});
+        callback({'ok': true, 'groupId': groupId});
       });
       return;
     }
-    socket.emit('group:leave', {'groupId': groupId});
-    socket.once('group:leave', (response) => callback(response));
+    
+    try {
+      final result = await socket.emitWithAck('group:leave', {'groupId': groupId}).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
+      );
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
-  void getUserStatus(String userId, Function(dynamic) callback) {
+  Future<void> getUserStatus(String userId, Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
         callback({'userId': userId, 'online': true, 'lastSeen': DateTime.now().toIso8601String()});
       });
       return;
     }
-    socket.emit('user:status:get', {'userId': userId});
-    socket.on('user:status:get', (data) => callback(data));
+    
+    try {
+      final result = await socket.emitWithAck('user:status:get', {'userId': userId}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => {},
+      );
+      callback(result);
+    } catch (e) {
+      callback({});
+    }
   }
 
   void onNewMessage(Function(dynamic) callback) {
