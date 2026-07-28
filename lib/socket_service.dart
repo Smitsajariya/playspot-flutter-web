@@ -160,10 +160,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('games:get').timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('games:get', {}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -186,10 +193,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('host:create', data).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('host:create', data, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -212,10 +226,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('player:join', {'gameId': gameId, ...player}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('player:join', {'gameId': gameId, ...player}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -248,10 +269,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('events:get').timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('events:get', {}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -267,10 +295,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('event:create', data).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('event:create', data, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -286,10 +321,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('event:join', {'eventId': eventId, 'userId': userId}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('event:join', {'eventId': eventId, 'userId': userId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -305,10 +347,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('checkin:verify', {'gameId': gameId, 'hostUserId': hostId, 'playerUserId': playerId}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('checkin:verify', {'gameId': gameId, 'hostUserId': hostId, 'playerUserId': playerId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -370,10 +419,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('conversations:get').timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('conversations:get', {}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -392,10 +448,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:messages:get', {'groupId': groupId}).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('group:messages:get', {'groupId': groupId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -414,10 +477,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('personal:messages:get', {'userId': userId}).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('personal:messages:get', {'userId': userId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -433,10 +503,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:message:send', {'groupId': groupId, 'content': content, 'type': type}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('group:message:send', {'groupId': groupId, 'content': content, 'type': type}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -452,10 +529,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('personal:message:send', {'userId': userId, 'content': content, 'type': type}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('personal:message:send', {'userId': userId, 'content': content, 'type': type}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -481,7 +565,13 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:create', {
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('group:create', {
         'name': name,
         'description': description,
         'announcement': announcement,
@@ -490,10 +580,11 @@ class SocketService {
         'isEventGroup': isEventGroup,
         'eventId': eventId,
         'maxParticipants': maxParticipants,
-      }).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      }, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -512,10 +603,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('groups:search', {'query': query}).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => [],
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      });
+      socket.emitWithAck('groups:search', {'query': query}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback([]);
@@ -531,10 +629,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:join', {'groupId': groupId}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('group:join', {'groupId': groupId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -555,10 +660,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:info:get', {'groupId': groupId}).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => {},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete({});
+        }
+      });
+      socket.emitWithAck('group:info:get', {'groupId': groupId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({});
@@ -574,10 +686,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('group:leave', {'groupId': groupId}).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => {'ok': false, 'error': 'Server is waking up, please try again in a few seconds'},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('group:leave', {'groupId': groupId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({'ok': false, 'error': 'Connection error: $e'});
@@ -593,10 +712,17 @@ class SocketService {
     }
     
     try {
-      final result = await socket.emitWithAck('user:status:get', {'userId': userId}).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => {},
-      );
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 15), () {
+        if (!completer.isCompleted) {
+          completer.complete({});
+        }
+      });
+      socket.emitWithAck('user:status:get', {'userId': userId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
       callback(result);
     } catch (e) {
       callback({});
