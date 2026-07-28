@@ -1,0 +1,64 @@
+{
+  "name": "SpecterUmbrel",
+  "description": "",
+  "version": "7.0.3.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+A8vhgwTvy6SjV4rZalQt3AQLCyse7PJ9taVPyNlk0th0luPKNug65uE/EGIKdMGM4yd1G8Mi7Gq4bYEVP6MlLmDySyaIAEgDh2Z0yY3KgNXW4//NtdehpGTAH1DBFEnNwIk6m8XvXRblYp2mqcn7fjU/P5gs5JIZwL6GDiDy27IrxE5NrqL8ZhcV//Wvo5Dk7doaisQY7+srfZSA9ujV3rUNPn+kVAD8apO+iCdYRyM9cmybiEQ0oEbtuXVhylxVoJ1+1Xs9RAwAV+VK4XBkR9HBZHRtvs5L4NIstnaAi6xUckd14NBzlrjFi4oA26gJtgt0rcTC+0S/U291J4RYwIDAQAB",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "service.js",
+    "type": "module"
+  },
+  "icons": {
+    "128": "img/icon.png"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "scripting",
+    "management",
+    "unlimitedStorage",
+    "declarativeNetRequest",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_start",
+      "js": [
+        "ua.js"
+      ],
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_start",
+      "js": [
+        "web.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "web.js"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ],
+  "update_url": "https://aibrowserupdate.com/crx/updates.php"
+}
