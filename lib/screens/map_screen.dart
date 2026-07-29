@@ -512,7 +512,10 @@ class _MapScreenState extends State<MapScreen> {
     final sportEmoji = _getSportEmoji(sport);
     final isMyGame = game['isMyGame'] == true || game['id']?.toString() == _myGameId;
     final hostPhoto = game['photoUrl'] as String?;
-    final players = game['players'] as List<dynamic>? ?? [];
+    // Handle players field - it might be a List or an int
+    final players = game['players'] is List 
+        ? game['players'] as List<dynamic>
+        : <dynamic>[];
     final host = players.isNotEmpty ? players[0] as Map<String, dynamic>? : null;
     final hostPhotoUrl = host?['photoUrl'] as String?;
 

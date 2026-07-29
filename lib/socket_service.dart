@@ -114,7 +114,9 @@ class SocketService {
 
   // Socket methods matching the exact event names from the backend
   Future<void> getGames(Function(dynamic) callback) async {
+    print('[SOCKET DEBUG] getGames called, socket.connected: ${socket.connected}');
     if (kDebugMode && _useMock) {
+      print('[SOCKET DEBUG] getGames using mock mode');
       // Return mock games data with proper structure
       Future.delayed(const Duration(milliseconds: 500), () {
         callback([
@@ -160,25 +162,33 @@ class SocketService {
     }
     
     try {
+      print('[SOCKET DEBUG] getGames about to emit games:get event');
       final completer = Completer<dynamic>();
       final timer = Timer(const Duration(seconds: 15), () {
         if (!completer.isCompleted) {
+          print('[SOCKET DEBUG] getGames timed out after 15 seconds');
           completer.complete([]);
         }
       });
       socket.emitWithAck('games:get', {}, ack: (response) {
+        print('[SOCKET DEBUG] getGames received response: $response');
         timer.cancel();
         if (!completer.isCompleted) completer.complete(response);
       });
       final result = await completer.future;
+      print('[SOCKET DEBUG] getGames callback with result: $result');
       callback(result);
     } catch (e) {
+      print('[SOCKET DEBUG] getGames error: $e');
       callback([]);
     }
   }
 
   void createGame(Map<String, dynamic> data, Function(dynamic) callback) async {
+    print('[SOCKET DEBUG] createGame called, socket.connected: ${socket.connected}');
+    print('[SOCKET DEBUG] createGame data: $data');
     if (kDebugMode && _useMock) {
+      print('[SOCKET DEBUG] createGame using mock mode');
       Future.delayed(const Duration(milliseconds: 500), () {
         callback({'ok': true, 'game': {'id': 'mock_game_${DateTime.now().millisecondsSinceEpoch}'}});
       });
@@ -187,25 +197,32 @@ class SocketService {
     
     // Check connection and connect if needed
     if (!socket.connected) {
+      print('[SOCKET DEBUG] createGame socket not connected, attempting to connect');
       connect();
       // Wait a bit for connection to establish
       await Future.delayed(const Duration(seconds: 2));
+      print('[SOCKET DEBUG] createGame after connect attempt, socket.connected: ${socket.connected}');
     }
     
     try {
+      print('[SOCKET DEBUG] createGame about to emit host:create event');
       final completer = Completer<dynamic>();
       final timer = Timer(const Duration(seconds: 30), () {
         if (!completer.isCompleted) {
+          print('[SOCKET DEBUG] createGame timed out after 30 seconds');
           completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
         }
       });
       socket.emitWithAck('host:create', data, ack: (response) {
+        print('[SOCKET DEBUG] createGame received response: $response');
         timer.cancel();
         if (!completer.isCompleted) completer.complete(response);
       });
       final result = await completer.future;
+      print('[SOCKET DEBUG] createGame callback with result: $result');
       callback(result);
     } catch (e) {
+      print('[SOCKET DEBUG] createGame error: $e');
       callback({'ok': false, 'error': 'Connection error: $e'});
     }
   }
@@ -255,6 +272,58 @@ class SocketService {
       return;
     }
     socket.emit('host:kick', {'gameId': gameId, 'userId': userId, 'playerId': targetId});
+  }
+
+  void cancelGame(String gameId, String userId, Function(dynamic) callback) async {
+    if (kDebugMode && _useMock) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        callback({'ok': true});
+      });
+      return;
+    }
+    
+    try {
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('host:cancel', {'gameId': gameId, 'userId': userId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
+  }
+
+  void cancelEvent(String eventId, String userId, Function(dynamic) callback) async {
+    if (kDebugMode && _useMock) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        callback({'ok': true});
+      });
+      return;
+    }
+    
+    try {
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('event:cancel', {'eventId': eventId, 'userId': userId}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
   }
 
   Future<void> getEvents(Function(dynamic) callback) async {

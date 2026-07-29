@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
+import '../socket_service.dart';
 
-class HostDashboardScreen extends StatelessWidget {
+class HostDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> gameData;
 
   const HostDashboardScreen({super.key, required this.gameData});
 
   @override
+  State<HostDashboardScreen> createState() => _HostDashboardScreenState();
+}
+
+class _HostDashboardScreenState extends State<HostDashboardScreen> {
+  final SocketService _socketService = SocketService();
+  bool _isCancelling = false;
+
+  @override
   Widget build(BuildContext context) {
-    final players = gameData['players'] as List<dynamic>? ?? [];
-    final maxPlayers = gameData['maxPlayers'] ?? 10;
-    final checkedIn = gameData['checkedIn'] as List<dynamic>? ?? [];
-    final hostRating = gameData['hostRating'] ?? 4.5;
-    final strikes = gameData['strikes'] ?? 0;
+    final players = widget.gameData['players'] as List<dynamic>? ?? [];
+    final maxPlayers = widget.gameData['maxPlayers'] ?? 10;
+    final checkedIn = widget.gameData['checkedIn'] as List<dynamic>? ?? [];
+    final hostRating = widget.gameData['hostRating'] ?? 4.5;
+    final strikes = widget.gameData['strikes'] ?? 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -71,6 +80,37 @@ class HostDashboardScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isCancelling ? null : _handleCancel,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isCancelling
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Cancel Game',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
           ],
         ),
       ),
@@ -108,5 +148,34 @@ class HostDashboardScreen extends StatelessWidget {
   int _calculateEarnings(int playerCount) {
     // Simple calculation: $5 per player
     return playerCount * 5;
+  }
+
+  void _handleCancel() async {
+    final gameId = widget.gameData['id']?.toString();
+    final userId = widget.gameData['hostUserId']?.toString();
+    
+    if (gameId == null || userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Missing game ID or user ID')),
+      );
+      return;
+    }
+
+    setState(() => _isCancelling = true);
+
+    _socketService.cancelGame(gameId, userId, (response) {
+      setState(() => _isCancelling = false);
+      
+      if (response['ok'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Game cancelled successfully')),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response['error'] ?? 'Failed to cancel game'}')),
+        );
+      }
+    });
   }
 }

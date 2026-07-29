@@ -116,7 +116,4 @@ const demoGames = <PSGame>[
   ),
 ];
 
-const demoEvents = <PSEvent>[
-  PSEvent(id: 'e1', title: 'Sunday League Kickoff', emoji: '🎉', dateLabel: 'Sun, 29 Jun', attendeeCount: 18),
-  PSEvent(id: 'e2', title: 'Beach Volleyball Meetup', emoji: '🏖️', dateLabel: 'Sat, 5 Jul', attendeeCount: 12),
-];
+const demoEvents = <PSEvent>[];
