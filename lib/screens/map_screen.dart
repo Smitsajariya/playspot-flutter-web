@@ -614,7 +614,10 @@ class _MapScreenState extends State<MapScreen> {
     final sport = game['sport'] ?? 'unknown';
     final sportEmoji = _getSportEmoji(sport);
     final title = game['title'] ?? 'Game';
-    final players = game['players'] as List<dynamic>? ?? [];
+    // Handle players field - it might be a List or an int
+    final players = game['players'] is List 
+        ? game['players'] as List<dynamic>
+        : <dynamic>[];
     final maxPlayersFallback = (game['playerCount'] as int?) ?? players.length;
     final maxPlayers = game['maxPlayers'] ?? 10;
     final rosterCount = players.isNotEmpty ? players.length : maxPlayersFallback;

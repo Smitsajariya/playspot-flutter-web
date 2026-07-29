@@ -321,8 +321,6 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
                   const SizedBox(height: 18),
                   _buildMyGamesSection(),
                   const SizedBox(height: 18),
-                  _buildRisingAthletesSection(),
-                  const SizedBox(height: 18),
                   _buildSectionLabel('📍 GAMES NEAR YOU', PSColors.gold),
                   const SizedBox(height: 10),
                   _isLoading
@@ -627,171 +625,6 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
     );
   }
 
-  Widget _buildRisingAthletesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.trending_up, color: Color(0xFFF5A623), size: 16),
-            const SizedBox(width: 6),
-            const Text(
-              'FEATURED ATHLETES',
-              style: TextStyle(
-                color: Color(0xFFF5A623),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Demo accounts for testing',
-          style: TextStyle(
-            color: Color(0x8CFFF8F0),
-            fontSize: 10,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 120,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            itemCount: mockPlayers.length,
-            itemBuilder: (context, index) {
-              final player = mockPlayers[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlayerProfileScreen(player: player, isOwnProfile: false),
-                      ),
-                    );
-                  },
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: _getAvatarUrl(player.id),
-                              width: 72,
-                              height: 72,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => _buildAvatarFallback(player),
-                              errorWidget: (context, url, error) => _buildAvatarFallback(player),
-                            ),
-                          ),
-                          if (player.isVerified)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF0E0700),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.verified,
-                                  color: Color(0xFFF5A623),
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          if (player.isLive)
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'LIVE',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        player.name,
-                        style: const TextStyle(
-                          color: Color(0xFFFFF8F0),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '${_formatCount(player.followerCount)} followers',
-                        style: TextStyle(
-                          color: PSColors.inkDim,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatCount(int count) {
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}k';
-    }
-    return count.toString();
-  }
-
-  String _getAvatarUrl(String playerId) {
-    switch (playerId) {
-      case '1':
-        return 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face';
-      case '2':
-        return 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face';
-      case '3':
-        return 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face';
-      case '4':
-        return 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face';
-      case '5':
-        return 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
-      default:
-        return 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face';
-    }
-  }
-
-  Widget _buildAvatarFallback(PlayerModel player) {
-    final initials = player.name.split(' ').map((n) => n[0]).take(2).join();
-    return Center(
-      child: Text(
-        initials,
-        style: const TextStyle(
-          color: Color(0xFFF5A623),
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   Widget _buildGamesGrid() {
     if (_filteredGames.isEmpty) {
       return _buildEmptyState();
@@ -915,7 +748,10 @@ class _GameCard extends StatelessWidget {
     // Use calculated distance if available, otherwise fallback to location
     final distanceLabel = game['calculatedDistance'] as String? ?? 
                          (game['location'] ?? 'Unknown location');
-    final players = (game['players'] as List?)?.length ?? game['playerCount'] ?? 0;
+    // Handle players field - it might be a List or an int
+    final players = game['players'] is List 
+        ? (game['players'] as List).length 
+        : (game['players'] is int ? game['players'] as int : (game['playerCount'] ?? 0));
     final maxPlayers = game['maxPlayers'] ?? 10;
     final isLive = game['isLive'] == true;
     
