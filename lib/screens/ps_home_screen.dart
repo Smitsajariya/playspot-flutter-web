@@ -70,7 +70,6 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
   void initState() {
     super.initState();
     _getCurrentLocation();
-    _loadGames();
     _socketService.connect();
     NotificationService().init();
     NotificationService().attachSocketListeners(_socketService);
@@ -89,6 +88,18 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
           _games.add(newGame);
           _applyFilters();
         });
+      }
+    });
+    // Wait for socket connection before loading games
+    _socketService.setConnectionStatusCallback((isConnected) {
+      if (isConnected && mounted) {
+        _loadGames();
+      }
+    });
+    // Also try loading games after a delay in case connection callback doesn't fire
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && _socketService.isConnected) {
+        _loadGames();
       }
     });
   }
