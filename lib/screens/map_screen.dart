@@ -1306,7 +1306,10 @@ class _MapScreenState extends State<MapScreen> {
     final sport = game['sport'] ?? 'unknown';
     final title = game['title'] ?? 'Game';
     final location = (game['location'] as String?) ?? '';
-    final players = (game['players'] as List<dynamic>? ?? []).length;
+    // Handle players field - it might be a List or an int
+    final players = game['players'] is List 
+        ? (game['players'] as List).length 
+        : 0;
     final maxPlayers = game['maxPlayers'] ?? 10;
     final isMyGame = game['isMyGame'] == true;
 
