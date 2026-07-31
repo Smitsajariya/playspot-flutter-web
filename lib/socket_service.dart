@@ -326,6 +326,32 @@ class SocketService {
     }
   }
 
+  void editEvent(String eventId, Map<String, dynamic> eventData, Function(dynamic) callback) async {
+    if (kDebugMode && _useMock) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        callback({'ok': true, 'event': {...eventData, 'id': eventId}});
+      });
+      return;
+    }
+    
+    try {
+      final completer = Completer<dynamic>();
+      final timer = Timer(const Duration(seconds: 30), () {
+        if (!completer.isCompleted) {
+          completer.complete({'ok': false, 'error': 'Server is waking up, please try again in a few seconds'});
+        }
+      });
+      socket.emitWithAck('event:update', {'eventId': eventId, ...eventData}, ack: (response) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete(response);
+      });
+      final result = await completer.future;
+      callback(result);
+    } catch (e) {
+      callback({'ok': false, 'error': 'Connection error: $e'});
+    }
+  }
+
   Future<void> getEvents(Function(dynamic) callback) async {
     if (kDebugMode && _useMock) {
       Future.delayed(const Duration(milliseconds: 500), () {
