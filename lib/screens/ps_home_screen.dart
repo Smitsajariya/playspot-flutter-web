@@ -13,6 +13,7 @@ import '../services/notification_service.dart';
 import '../services/waitlist_service.dart';
 import 'player_profile_screen.dart';
 import 'profile_screen.dart';
+import 'ingame_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class PSHomeScreen extends StatefulWidget {
@@ -754,18 +755,31 @@ class _GameCard extends StatelessWidget {
         : (game['players'] is int ? game['players'] as int : (game['playerCount'] ?? 0));
     final maxPlayers = game['maxPlayers'] ?? 10;
     final isLive = game['isLive'] == true;
+    final gameId = game['id']?.toString();
     
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isMyGame ? PSColors.fire.withOpacity(0.1) : PSColors.surface2,
-        borderRadius: BorderRadius.circular(PSRadius.lg),
-        border: Border.all(
-          color: isMyGame ? PSColors.fire : PSColors.border,
-          width: isMyGame ? 2 : 1,
+    return InkWell(
+      onTap: gameId != null
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => IngameScreen(gameId: gameId),
+                ),
+              );
+            }
+          : null,
+      borderRadius: BorderRadius.circular(PSRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isMyGame ? PSColors.fire.withOpacity(0.1) : PSColors.surface2,
+          borderRadius: BorderRadius.circular(PSRadius.lg),
+          border: Border.all(
+            color: isMyGame ? PSColors.fire : PSColors.border,
+            width: isMyGame ? 2 : 1,
+          ),
         ),
-      ),
-      child: isListView
+        child: isListView
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -802,6 +816,7 @@ class _GameCard extends StatelessWidget {
                 Expanded(child: _cardBody(context, title, distanceLabel, players, maxPlayers, isLive)),
               ],
             ),
+      ),
     );
   }
 
@@ -851,7 +866,8 @@ class _GameCard extends StatelessWidget {
 
 class _EventCard extends StatelessWidget {
   final PSEvent event;
-  const _EventCard({required this.event});
+  final bool isMyEvent;
+  const _EventCard({required this.event, this.isMyEvent = false});
 
   @override
   Widget build(BuildContext context) {
@@ -876,6 +892,16 @@ class _EventCard extends StatelessWidget {
               ],
             ),
           ),
+          if (isMyEvent)
+            IconButton(
+              icon: const Icon(Icons.edit, size: 18, color: PSColors.gold),
+              onPressed: () {
+                // TODO: Navigate to event edit screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Event editing coming soon')),
+                );
+              },
+            ),
         ],
       ),
     );
