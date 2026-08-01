@@ -22,6 +22,7 @@ class _IngameScreenState extends State<IngameScreen> {
   String? _myUserId;
   bool _isHost = false;
   bool _isLoading = true;
+  bool _gameNotFound = false;
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _IngameScreenState extends State<IngameScreen> {
           _game = game;
           _isHost = game['hostUserId'] == _myUserId;
           _isLoading = false;
+          _gameNotFound = false;
         });
       }
     });
@@ -64,6 +66,19 @@ class _IngameScreenState extends State<IngameScreen> {
           _game = game;
           _isHost = game['hostUserId'] == _myUserId;
           _isLoading = false;
+          _gameNotFound = false;
+        });
+      } else {
+        // Game not found in initial load, wait for timeout
+      }
+    });
+    
+    // 10 second timeout for game not found
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && _isLoading && _game == null) {
+        setState(() {
+          _isLoading = false;
+          _gameNotFound = true;
         });
       }
     });
@@ -479,6 +494,55 @@ class _IngameScreenState extends State<IngameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_gameNotFound) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0E0700),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Color(0xFFFF4D1C),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Game not found',
+                  style: TextStyle(
+                    color: Color(0xFFFFF8F0),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'This game may have ended or been cancelled.',
+                  style: TextStyle(
+                    color: Color(0x8CFFF8F0),
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF5A623),
+                    foregroundColor: const Color(0xFF140A00),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_isLoading || _game == null) {
       return Scaffold(
         backgroundColor: const Color(0xFF0E0700),
