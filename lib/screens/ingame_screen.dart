@@ -99,11 +99,15 @@ class _IngameScreenState extends State<IngameScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            QrImageView(
-              data: 'ps_checkin:$_myUserId',
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.white,
+            SizedBox(
+              width: 250,
+              height: 250,
+              child: QrImageView(
+                data: 'ps_checkin:$_myUserId',
+                version: QrVersions.auto,
+                size: 200.0,
+                backgroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
