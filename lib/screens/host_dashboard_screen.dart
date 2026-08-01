@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../socket_service.dart';
+import 'host_game_edit_screen.dart';
 
 class HostDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> gameData;
@@ -44,9 +45,27 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFFFFF8F0)),
-                  onPressed: () => Navigator.of(context).pop(),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Color(0xFFF5A623)),
+                      onPressed: () {
+                        final gameId = widget.gameData['id']?.toString();
+                        if (gameId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HostGameEditScreen(gameId: gameId),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFFFFF8F0)),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
               ],
             ),
