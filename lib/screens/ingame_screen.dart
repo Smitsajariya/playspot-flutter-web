@@ -233,114 +233,122 @@ class _IngameScreenState extends State<IngameScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _game!['title'] ?? 'Game',
-                style: const TextStyle(
-                  color: Color(0xFFFFF8F0),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard('Players', '${players.length}'),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard('Checked In', '$checkedIn'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildAttendanceCard(attendance),
-              const SizedBox(height: 16),
-              // Host dashboard button
-              if (_isHost)
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (_game != null) {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => HostDashboardScreen(gameData: _game!),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.dashboard),
-                  label: const Text('Host Dashboard'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5A623),
-                    foregroundColor: const Color(0xFF140A00),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              // QR scanner button
-              if (_isHost)
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => QRScannerScreen(gameId: widget.gameId),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan QR'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A0C00),
-                    foregroundColor: const Color(0xFFF5A623),
-                    side: const BorderSide(color: Color(0xFFF5A623)),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              const Text(
-                'Player Roster',
-                style: TextStyle(
-                  color: Color(0xFFF5A623),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
               Expanded(
-                child: ListView.builder(
+                child: SingleChildScrollView(
                   controller: scrollController,
-                  itemCount: players.length,
-                  itemBuilder: (context, index) {
-                    final player = players[index] as Map<String, dynamic>;
-                    final isHost = index == 0;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: player['photoUrl'] != null
-                            ? CachedNetworkImageProvider(player['photoUrl'])
-                            : null,
-                        child: player['photoUrl'] == null
-                            ? const Icon(Icons.person, color: Color(0xFFF5A623))
-                            : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _game!['title'] ?? 'Game',
+                        style: const TextStyle(
+                          color: Color(0xFFFFF8F0),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      title: Text(
-                        player['name'] ?? 'Player',
-                        style: const TextStyle(color: Color(0xFFFFF8F0)),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard('Players', '${players.length}'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildStatCard('Checked In', '$checkedIn'),
+                          ),
+                        ],
                       ),
-                      subtitle: Text(
-                        player['checkedIn'] == true ? '✅ Checked in' : '⏳ Not checked in',
-                        style: const TextStyle(color: Color(0x8CFFF8F0)),
-                      ),
-                      trailing: isHost
-                          ? const Text(
-                              'HOST',
-                              style: TextStyle(
-                                color: Color(0xFFF5A623),
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(height: 12),
+                      _buildAttendanceCard(attendance),
+                      const SizedBox(height: 16),
+                      // Host dashboard button
+                      if (_isHost)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            if (_game != null) {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => HostDashboardScreen(gameData: _game!),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.dashboard),
+                          label: const Text('Host Dashboard'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF5A623),
+                            foregroundColor: const Color(0xFF140A00),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      // QR scanner button
+                      if (_isHost)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => QRScannerScreen(gameId: widget.gameId),
                               ),
-                            )
-                          : null,
-                    );
-                  },
+                            );
+                          },
+                          icon: const Icon(Icons.qr_code_scanner),
+                          label: const Text('Scan QR'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A0C00),
+                            foregroundColor: const Color(0xFFF5A623),
+                            side: const BorderSide(color: Color(0xFFF5A623)),
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Player Roster',
+                        style: TextStyle(
+                          color: Color(0xFFF5A623),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...players.map((player) {
+                        final index = players.indexOf(player);
+                        final playerMap = player as Map<String, dynamic>;
+                        final isHost = index == 0;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: playerMap['photoUrl'] != null
+                                  ? CachedNetworkImageProvider(playerMap['photoUrl'])
+                                  : null,
+                              child: playerMap['photoUrl'] == null
+                                  ? const Icon(Icons.person, color: Color(0xFFF5A623))
+                                  : null,
+                            ),
+                            title: Text(
+                              playerMap['name'] ?? 'Player',
+                              style: const TextStyle(color: Color(0xFFFFF8F0)),
+                            ),
+                            subtitle: Text(
+                              playerMap['checkedIn'] == true ? '✅ Checked in' : '⏳ Not checked in',
+                              style: const TextStyle(color: Color(0x8CFFF8F0)),
+                            ),
+                            trailing: isHost
+                                ? const Text(
+                                    'HOST',
+                                    style: TextStyle(
+                                      color: Color(0xFFF5A623),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
                 ),
               ),
             ],
