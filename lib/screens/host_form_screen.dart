@@ -142,7 +142,8 @@ class _HostFormScreenState extends State<HostFormScreen> {
   }
 
   Future<void> _submitGame() async {
-    if (_titleController.text.trim().isEmpty) {
+    final isCustom = widget.selectedActivity?['id'] == 'custom';
+    if (isCustom && _titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a game title')),
       );
@@ -171,7 +172,9 @@ class _HostFormScreenState extends State<HostFormScreen> {
         'name': profile['name'] ?? 'Player',
         'sport': widget.selectedActivity?['id'] ?? 'football',
         'category': widget.selectedActivity?['categoryId'] ?? 'sports',
-        'title': _titleController.text.trim(),
+        'title': isCustom
+            ? _titleController.text.trim()
+            : (widget.selectedActivity?['name'] ?? 'Game'),
         'description': _notesController.text.trim(),
         'location': _locationController.text.trim(),
         'maxPlayers': _maxPlayers,
@@ -228,18 +231,18 @@ class _HostFormScreenState extends State<HostFormScreen> {
             List<dynamic> recurringGames = [];
             final recurringJson = prefs.getString('ps_recurring_games');
             if (recurringJson != null) recurringGames = jsonDecode(recurringJson);
-            recurringGames.add({'gameId': gameId, 'title': _titleController.text.trim(), ...gameData['recurrence'] as Map});
+            recurringGames.add({'gameId': gameId, 'title': gameData['title'], ...gameData['recurrence'] as Map});
             await prefs.setString('ps_recurring_games', jsonEncode(recurringGames));
 
             await NotificationService().add(NotificationItem(
               id: 'recurrence_set_${gameId}_${DateTime.now().millisecondsSinceEpoch}',
               type: PSNotificationType.gameActivity,
               title: 'Standing game set up 🔁',
-              body: "${_titleController.text.trim()} repeats $_recurrence — we'll remind you before each one.",
+              body: "${gameData['title']} repeats $_recurrence — we'll remind you before each one.",
               emoji: '🔁',
               timestamp: DateTime.now(),
               groupId: gameId,
-              groupName: _titleController.text.trim(),
+              groupName: gameData['title'],
             ));
           }
           
@@ -326,13 +329,15 @@ class _HostFormScreenState extends State<HostFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Game title
-              _buildStyledTextField(
-                controller: _titleController,
-                hintText: 'Game title',
-                icon: Icons.title,
-              ),
-              const SizedBox(height: 20),
+              // Game title — only needed for Custom activities
+              if (widget.selectedActivity?['id'] == 'custom') ...[
+                _buildStyledTextField(
+                  controller: _titleController,
+                  hintText: 'Game title',
+                  icon: Icons.title,
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Location picker
               _buildLocationPicker(),
