@@ -561,10 +561,15 @@ class _HostCategoryScreenState extends State<HostCategoryScreen> {
   Widget _buildMainCategoryCard(MainCategory category, BuildContext context) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedMainCategory = category;
-          _controller.setMainCategory(category.id);
-        });
+        if (category.id == 'custom') {
+          // Skip intermediate screen for Custom - go directly to location picker
+          _showCustomCategoryDialog(context);
+        } else {
+          setState(() {
+            selectedMainCategory = category;
+            _controller.setMainCategory(category.id);
+          });
+        }
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
