@@ -749,20 +749,33 @@ class _HostCategoryScreenState extends State<HostCategoryScreen> {
     return GestureDetector(
       onTap: () {
         _controller.setSubCategory(category.id);
-        // Navigate directly to HostFormScreen like custom activities
+        // Navigate to LocationPickerScreen first, then HostFormScreen
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HostFormScreen(
-              selectedActivity: {
-                'id': category.id,
-                'name': category.name,
-                'icon': category.icon,
-                'categoryId': selectedMainCategory!.id,
-              },
-            ),
+            builder: (context) => LocationPickerScreen(),
           ),
-        );
+        ).then((result) {
+          if (result != null && result['location'] != null) {
+            // Location selected, navigate to HostFormScreen with pre-filled data
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HostFormScreen(
+                  selectedActivity: {
+                    'id': category.id,
+                    'name': category.name,
+                    'icon': category.icon,
+                    'categoryId': selectedMainCategory!.id,
+                  },
+                  preFilledLocation: result['address'],
+                  preFilledLat: result['location']?.latitude,
+                  preFilledLng: result['location']?.longitude,
+                ),
+              ),
+            );
+          }
+        });
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -906,105 +919,36 @@ class _HostCategoryScreenState extends State<HostCategoryScreen> {
   }
 
   void _showCustomCategoryDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
+    _controller.setMainCategory('custom');
+    _controller.setSubCategory('custom');
     
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.7),
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A0E00),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: const Color(0xFFF5A623).withOpacity(0.3)),
-        ),
-        title: const Text(
-          'Create Custom Activity',
-          style: TextStyle(
-            color: Color(0xFFFFF8F0),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              style: const TextStyle(color: Color(0xFFFFF8F0)),
-              decoration: InputDecoration(
-                labelText: 'Activity Name',
-                labelStyle: TextStyle(color: const Color(0xFFF5A623).withOpacity(0.7)),
-                filled: true,
-                fillColor: const Color(0xFF0E0700),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: const Color(0xFFF5A623).withOpacity(0.3)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: const Color(0xFFF5A623).withOpacity(0.3)),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: const Color(0xFFF5A623).withOpacity(0.7)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                Navigator.pop(context);
-                _controller.setCustomActivity(nameController.text, '🏆');
-                _controller.setMainCategory('custom');
-                _controller.setSubCategory('custom');
-                
-                // Navigate to LocationPickerScreen and handle result
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LocationPickerScreen(),
-                  ),
-                ).then((result) {
-                  if (result != null && result['location'] != null) {
-                    // Location selected, navigate to HostFormScreen with pre-filled data
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HostFormScreen(
-                          selectedActivity: {
-                            'id': 'custom',
-                            'name': nameController.text,
-                            'icon': '🏆',
-                            'categoryId': 'custom',
-                          },
-                          preFilledLocation: result['address'], // Use address string, not LatLng object
-                          preFilledLat: result['location']?.latitude,
-                          preFilledLng: result['location']?.longitude,
-                        ),
-                      ),
-                    );
-                  }
-                });
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF5A623),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Create',
-              style: TextStyle(color: Color(0xFF140A00)),
-            ),
-          ),
-        ],
+    // Navigate directly to LocationPickerScreen (no name dialog)
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LocationPickerScreen(),
       ),
-    );
+    ).then((result) {
+      if (result != null && result['location'] != null) {
+        // Location selected, navigate to HostFormScreen with pre-filled location
+        // Name will be entered in HostFormScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HostFormScreen(
+              selectedActivity: {
+                'id': 'custom',
+                'name': '', // Empty name, will be filled in HostFormScreen
+                'icon': '🏆',
+                'categoryId': 'custom',
+              },
+              preFilledLocation: result['address'],
+              preFilledLat: result['location']?.latitude,
+              preFilledLng: result['location']?.longitude,
+            ),
+          ),
+        );
+      }
+    });
   }
 }
