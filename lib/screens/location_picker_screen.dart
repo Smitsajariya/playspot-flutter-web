@@ -51,9 +51,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
     _selectedAddress = widget.initialAddress;
     _centerLocation = widget.initialLocation;
     
-    if (_selectedLocation != null) {
-      _mapController.move(_selectedLocation!, 15);
-    } else {
+    if (_selectedLocation == null) {
       _getCurrentLocation();
     }
   }
