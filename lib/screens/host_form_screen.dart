@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'dart:convert';
 import '../socket_service.dart';
 import '../screens/ingame_screen.dart';

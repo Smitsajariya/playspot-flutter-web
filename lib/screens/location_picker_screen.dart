@@ -23,7 +23,7 @@ class LocationPickerScreen extends StatefulWidget {
 class _LocationPickerScreenState extends State<LocationPickerScreen>
     with SingleTickerProviderStateMixin {
   TabController? _tabController;
-  final MapController _mapController = MapController();
+  late final MapController _mapController;
   LatLng? _centerLocation; // Tracks the center of the map
   
   // Manual input controllers
@@ -45,6 +45,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen>
   @override
   void initState() {
     super.initState();
+    _mapController = MapController();
     _tabController = TabController(length: 2, vsync: this);
     _selectedLocation = widget.initialLocation;
     _selectedAddress = widget.initialAddress;
