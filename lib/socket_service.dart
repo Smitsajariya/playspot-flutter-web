@@ -898,6 +898,24 @@ class SocketService {
     }
     socket.on('game:created', callback);
   }
+
+  void onGameCancelled(Function(dynamic) callback) {
+    if (kDebugMode && _useMock) {
+      return;
+    }
+    socket.on('game:cancelled', callback);
+  }
+
+  void onEventCancelled(Function(dynamic) callback) {
+    if (kDebugMode && _useMock) {
+      return;
+    }
+    print('[SOCKET SERVICE] Registering listener for event:cancelled');
+    socket.on('event:cancelled', (data) {
+      print('[SOCKET SERVICE] Received event:cancelled: $data');
+      callback(data);
+    });
+  }
 }
 
 // Mock socket class for web testing

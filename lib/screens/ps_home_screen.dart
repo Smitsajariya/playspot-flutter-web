@@ -91,6 +91,17 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
         });
       }
     });
+
+    _socketService.onGameCancelled((data) {
+      if (mounted) {
+        final cancelledGameId = data['gameId'];
+        setState(() {
+          _games.removeWhere((game) => game['id'] == cancelledGameId);
+          _applyFilters();
+        });
+        _removeCancelledGameFromCache(cancelledGameId);
+      }
+    });
     // Wait for socket connection before loading games
     _socketService.setConnectionStatusCallback((isConnected) {
       if (isConnected && mounted) {
@@ -296,6 +307,20 @@ class _PSHomeScreenState extends State<PSHomeScreen> {
       _searchQuery = query;
     });
     _applyFilters();
+  }
+
+  Future<void> _removeCancelledGameFromCache(String gameId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final createdGamesJson = prefs.getString('ps_created_games');
+      if (createdGamesJson != null) {
+        List<dynamic> createdGames = jsonDecode(createdGamesJson) as List<dynamic>;
+        createdGames.removeWhere((game) => game['id'] == gameId);
+        await prefs.setString('ps_created_games', jsonEncode(createdGames));
+      }
+    } catch (e) {
+      print('Error removing cancelled game from cache: $e');
+    }
   }
 
   @override

@@ -15,7 +15,16 @@ import '../services/geocoding_service.dart';
 
 class HostFormScreen extends StatefulWidget {
   final Map<String, dynamic>? selectedActivity;
-  const HostFormScreen({super.key, this.selectedActivity});
+  final String? preFilledLocation;
+  final double? preFilledLat;
+  final double? preFilledLng;
+  const HostFormScreen({
+    super.key,
+    this.selectedActivity,
+    this.preFilledLocation,
+    this.preFilledLat,
+    this.preFilledLng,
+  });
 
   @override
   State<HostFormScreen> createState() => _HostFormScreenState();
@@ -42,7 +51,17 @@ class _HostFormScreenState extends State<HostFormScreen> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    // Use pre-filled location if provided, otherwise get current location
+    if (widget.preFilledLocation != null) {
+      setState(() {
+        _locationController.text = widget.preFilledLocation!;
+        _lat = widget.preFilledLat;
+        _lng = widget.preFilledLng;
+        _selectedAddress = widget.preFilledLocation;
+      });
+    } else {
+      _getCurrentLocation();
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -339,9 +358,11 @@ class _HostFormScreenState extends State<HostFormScreen> {
                 const SizedBox(height: 20),
               ],
 
-              // Location picker
-              _buildLocationPicker(),
-              const SizedBox(height: 20),
+              // Location picker - only show if not pre-filled
+              if (widget.preFilledLocation == null) ...[
+                _buildLocationPicker(),
+                const SizedBox(height: 20),
+              ],
 
               // Max players dropdown
               _buildStyledDropdown(

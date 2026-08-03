@@ -971,11 +971,23 @@ class _HostCategoryScreenState extends State<HostCategoryScreen> {
                   ),
                 ).then((result) {
                   if (result != null && result['location'] != null) {
-                    // Location selected, continue to next step
-                    // For now, just save the location to controller
-                    _controller.setLocation(result['location']);
-                    // TODO: Continue to DateTime picker, then Audience/Privacy, then submit
-                    print('Location selected: ${result['location']}');
+                    // Location selected, navigate to HostFormScreen with pre-filled data
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HostFormScreen(
+                          selectedActivity: {
+                            'id': 'custom',
+                            'name': nameController.text,
+                            'icon': '🏆',
+                            'categoryId': 'custom',
+                          },
+                          preFilledLocation: result['address'], // Use address string, not LatLng object
+                          preFilledLat: result['location']?.latitude,
+                          preFilledLng: result['location']?.longitude,
+                        ),
+                      ),
+                    );
                   }
                 });
               }

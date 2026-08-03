@@ -29,6 +29,19 @@ class _EventsScreenState extends State<EventsScreen> {
         setState(() => _events = events);
       }
     });
+
+    _socketService.onEventCancelled((data) {
+      print('[EVENTS SCREEN] Received event:cancelled: $data');
+      if (mounted) {
+        final cancelledEventId = data['eventId'];
+        print('[EVENTS SCREEN] Removing event with ID: $cancelledEventId');
+        print('[EVENTS SCREEN] Current events before removal: ${_events.map((e) => e['id']).toList()}');
+        setState(() {
+          _events.removeWhere((event) => event['id'] == cancelledEventId);
+        });
+        print('[EVENTS SCREEN] Current events after removal: ${_events.map((e) => e['id']).toList()}');
+      }
+    });
   }
 
   Future<void> _loadEvents() async {
