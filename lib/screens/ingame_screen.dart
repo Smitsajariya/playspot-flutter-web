@@ -476,11 +476,20 @@ class _IngameScreenState extends State<IngameScreen> {
             onPressed: () {
               Navigator.pop(context);
               if (isHost) {
-                _socketService.leaveGame(widget.gameId, _myUserId ?? '');
+                _socketService.cancelGame(widget.gameId, _myUserId ?? '', (response) {
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    if (response is Map && response['ok'] == false) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(response['error']?.toString() ?? 'Could not end game')),
+                      );
+                    }
+                  }
+                });
               } else {
                 _socketService.leaveGame(widget.gameId, _myUserId ?? '');
+                Navigator.of(context).pop();
               }
-              Navigator.of(context).pop();
             },
             child: Text(
               isHost ? 'End Game' : 'Leave',
